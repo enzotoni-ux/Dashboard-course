@@ -2,12 +2,12 @@
   {
     "id": "20260404Course en extérieur.gpx-1775307933000",
     "date": "2026-04-04T13:05:33.000Z",
-    "distanceKm": 13.95942416967233,
-    "durationSec": 5481,
-    "elevGain": 405.2999999999999,
+    "distanceKm": 14.21,
+    "durationSec": 5570,
+    "elevGain": 352.5,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 18.2531478857954,
+    "maxSpeedKmh": 17.85967461105258,
     "source": "20260404Course en extérieur.gpx",
     "points": [
       [
@@ -2010,18 +2010,17 @@
         47.90331059135201,
         -2.1078197395594156
       ]
-    ],
-    "city": "Guer"
+    ]
   },
   {
     "id": "20260607Course en extérieur.gpx-1780818731000",
     "date": "2026-06-07T07:52:11.000Z",
-    "distanceKm": 15.133830554013027,
-    "durationSec": 5198,
-    "elevGain": 167.99999999999994,
+    "distanceKm": 15.22,
+    "durationSec": 5203,
+    "elevGain": 93.5999984741211,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 14.433635408433886,
+    "maxSpeedKmh": 14.162457627665425,
     "source": "20260607Course en extérieur.gpx",
     "points": [
       [
@@ -3920,18 +3919,17 @@
         47.938844327602716,
         -1.2359728618791603
       ]
-    ],
-    "city": "La Guerche-de-Bretagne"
+    ]
   },
   {
     "id": "20260620Course en extérieur.gpx-1781936959000",
     "date": "2026-06-20T06:29:19.000Z",
-    "distanceKm": 16.582948074276008,
-    "durationSec": 5895,
-    "elevGain": 254.89999999999992,
+    "distanceKm": 16.59,
+    "durationSec": 5777,
+    "elevGain": 170.10000610351562,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 15.726785223101583,
+    "maxSpeedKmh": 15.571916762189476,
     "source": "20260620Course en extérieur.gpx",
     "points": [
       [
@@ -5862,18 +5860,17 @@
         48.17981801519498,
         -1.9451767063866947
       ]
-    ],
-    "city": "Bédée"
+    ]
   },
   {
     "id": "20260810Course en extérieur.gpx-1786347803000",
     "date": "2026-08-10T07:43:23.000Z",
-    "distanceKm": 10.735845652173579,
-    "durationSec": 3808,
-    "elevGain": 118.80000000000005,
+    "distanceKm": 10.74,
+    "durationSec": 3813,
+    "elevGain": 59.79999923706055,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 13.803722562966177,
+    "maxSpeedKmh": 13.416043114474597,
     "source": "20260810Course en extérieur.gpx",
     "points": [
       [
@@ -7784,18 +7781,17 @@
         48.11656138522037,
         -1.749458448646691
       ]
-    ],
-    "city": "Vezin-le-Coquet"
+    ]
   },
   {
     "id": "20260817Course en extérieur.gpx-1786953584000",
     "date": "2026-08-17T07:59:44.000Z",
-    "distanceKm": 10.767069970621598,
-    "durationSec": 3592,
-    "elevGain": 108.3,
+    "distanceKm": 10.79,
+    "durationSec": 3599,
+    "elevGain": 46.599998474121094,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 24.9311520034841,
+    "maxSpeedKmh": 14.995947733964368,
     "source": "20260817Course en extérieur.gpx",
     "points": [
       [
@@ -9598,18 +9594,17 @@
         48.11653597682625,
         -1.749364881532999
       ]
-    ],
-    "city": "Vezin-le-Coquet"
+    ]
   },
   {
     "id": "20260826Course en extérieur.gpx-1787726378000",
     "date": "2026-08-26T06:39:38.000Z",
-    "distanceKm": 10.748402154939178,
+    "distanceKm": 10.75,
     "durationSec": 3601,
-    "elevGain": 114.90000000000005,
+    "elevGain": 51.20000076293945,
     "avgHr": null,
     "maxHr": null,
-    "maxSpeedKmh": 14.708665738872885,
+    "maxSpeedKmh": 14.525853091729505,
     "source": "20260826Course en extérieur.gpx",
     "points": [
       [
@@ -11420,7 +11415,6 @@
         48.116560709140714,
         -1.7493726590218455
       ]
-    ],
-    "city": "Vezin-le-Coquet"
+    ]
   }
 ]

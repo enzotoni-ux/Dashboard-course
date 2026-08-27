@@ -217,8 +217,21 @@ function downsample(points, maxPoints) {
 }
 
 function parseGPX(xml, filename) {
-  const trkpts = Array.from(xml.getElementsByTagName('trkpt'));
+  let trkpts = Array.from(xml.getElementsByTagName('trkpt'));
   if (!trkpts.length) return null;
+  // Certaines courses ont un tout premier point enregistré bien avant que le
+  // coureur ne bouge réellement (ex: le bouton "démarrer" pressé plusieurs
+  // minutes avant le départ, pendant que le téléphone cherche le signal GPS).
+  // On l'ignore pour ne pas gonfler artificiellement la durée du 1er km : Huawei
+  // fait la même chose (leur durée totale officielle exclut aussi ce point).
+  while (trkpts.length > 2) {
+    const t0 = trkpts[0].getElementsByTagName('time')[0];
+    const t1 = trkpts[1].getElementsByTagName('time')[0];
+    if (!t0 || !t1) break;
+    const gapSec = (new Date(t1.textContent) - new Date(t0.textContent)) / 1000;
+    if (gapSec <= 10) break;
+    trkpts = trkpts.slice(1);
+  }
   let distance = 0, elevGain = 0, hrSum = 0, hrCount = 0, hrMax = 0, maxSpeedKmh = 0;
   let prevLat, prevLon, prevEle, prevTime, startTime;
   const times = [];

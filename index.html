@@ -141,6 +141,35 @@
     font-size: 0.85rem;
   }
 
+  .best-vo2max {
+    background: rgba(255, 224, 130, 0.18);
+    box-shadow: inset 0 0 0 1px #ffd54f, 0 0 18px 2px rgba(255, 213, 79, 0.6);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 4px;
+  }
+  .vo2max-badge {
+    display: inline-block;
+    margin-left: 6px;
+    color: #ffd54f;
+    text-shadow: 0 0 8px rgba(255, 213, 79, 0.9);
+    font-size: 0.85rem;
+  }
+
+  .tips-title { display: flex; align-items: center; gap: 12px; }
+  .tips-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 213, 79, 0.35), rgba(255, 213, 79, 0));
+    box-shadow: 0 0 16px 4px rgba(255, 213, 79, 0.55), 0 0 32px 8px rgba(255, 213, 79, 0.25);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
   .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
   select#runPicker {
     background: var(--panel-2); border: 1px solid var(--accent); color: var(--text);
@@ -196,44 +225,57 @@
   <div id="tableWrap"></div>
 </div>
 
+<div class="panel">
+  <h2>Barème VO2max (Homme, 48 ans — référence Cooper)</h2>
+  <div id="vo2maxScale"></div>
+  <div style="margin-top:20px; color:var(--muted); font-size:0.88rem; line-height:1.6;">
+    <p class="tips-title" style="color:var(--text); margin:0 0 8px; font-weight:600;"><span class="tips-icon">💡</span> Comment l'améliorer :</p>
+    <ul style="margin:0; padding-left:20px;">
+      <li><strong style="color:var(--text);">Le fractionné / interval training</strong> — c'est le levier n°1. Alterner efforts courts et intenses (ex: 30s-1min à fond) avec récupération. Ça stimule directement le cœur et les muscles à consommer plus d'oxygène.</li>
+      <li><strong style="color:var(--text);">Le seuil (tempo run)</strong> — courir 20-40 min à une allure « inconfortable mais soutenable », juste sous ton essoufflement max. Améliore l'endurance à haute intensité.</li>
+      <li><strong style="color:var(--text);">Le volume d'endurance fondamentale</strong> — courir souvent à allure facile (tu peux parler) construit la base cardiovasculaire sur laquelle tout le reste s'appuie.</li>
+      <li><strong style="color:var(--text);">La régularité plus que l'intensité brute</strong> — 3-4 sorties/semaine variées battent une grosse séance isolée.</li>
+      <li><strong style="color:var(--text);">Le renforcement musculaire</strong> (jambes, gainage) — améliore l'économie de course, donc indirectement l'efficacité d'utilisation de l'oxygène.</li>
+      <li><strong style="color:var(--text);">Récupération et sommeil</strong> — le VO2max progresse pendant la récupération, pas pendant l'effort.</li>
+    </ul>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = 'dashboard-course-runs';
-const VO2MAX_KEY = 'dashboard-course-vo2max';
+const VO2MAX_KEY = 'dashboard-course-vo2max'; // ancien stockage séparé, conservé pour migration
 let runs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-let vo2maxHistory = JSON.parse(localStorage.getItem(VO2MAX_KEY) || '[]');
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
   render();
 }
 
-function saveVo2max() {
-  vo2maxHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
-  localStorage.setItem(VO2MAX_KEY, JSON.stringify(vo2maxHistory));
-  render();
-}
-
 // Barème Cooper, homme 40-49 ans (mL/kg/min).
+const VO2MAX_SCALE = [
+  { label: 'Faible', min: -Infinity, max: 30.2, color: '#ff5a5a' },
+  { label: 'Passable', min: 30.2, max: 33.6, color: '#ff8a3d' },
+  { label: 'Moyen', min: 33.6, max: 38.6, color: '#e8c93d' },
+  { label: 'Bon', min: 38.6, max: 45.2, color: '#33c17d' },
+  { label: 'Excellent', min: 45.2, max: 51.0, color: '#33c17d' },
+  { label: 'Supérieur', min: 51.0, max: Infinity, color: '#33c17d' },
+];
+
 function vo2maxAppreciation(v) {
-  if (v < 30.2) return { label: 'Faible', color: '#ff5a5a' };
-  if (v < 33.6) return { label: 'Passable', color: '#ff8a3d' };
-  if (v < 38.6) return { label: 'Moyen', color: '#e8c93d' };
-  if (v < 45.2) return { label: 'Bon', color: '#33c17d' };
-  if (v < 51.0) return { label: 'Excellent', color: '#33c17d' };
-  return { label: 'Supérieur', color: '#33c17d' };
+  return VO2MAX_SCALE.find(s => v >= s.min && v < s.max) || VO2MAX_SCALE[VO2MAX_SCALE.length - 1];
 }
 
-function addVo2max() {
-  const value = prompt('Nouvelle valeur VO2max (mL/kg/min) :');
-  if (value === null) return;
-  const val = Number(value.trim().replace(',', '.'));
+function editVo2max(id) {
+  const run = runs.find(r => r.id === id);
+  if (!run) return;
+  const input = prompt('VO2max pour cette course (mL/kg/min) :', run.vo2max ?? '');
+  if (input === null) return;
+  const trimmed = input.trim();
+  if (trimmed === '') { run.vo2max = null; save(); return; }
+  const val = Number(trimmed.replace(',', '.'));
   if (!Number.isFinite(val) || val <= 0) { alert('Valeur invalide.'); return; }
-  const dateInput = prompt('Date de la mesure (JJ/MM/AAAA) :', new Date().toLocaleDateString('fr-FR'));
-  if (dateInput === null) return;
-  const [d, m, y] = dateInput.trim().split('/').map(Number);
-  const date = (d && m && y) ? new Date(y, m - 1, d) : new Date();
-  vo2maxHistory.push({ date: date.toISOString(), value: val });
-  saveVo2max();
+  run.vo2max = val;
+  save();
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -534,11 +576,13 @@ function renderInner() {
     const longestDistanceKm = Math.max(...sorted.map(r => r.distanceKm));
     const caloriesValues = sorted.map(r => r.calories).filter(c => c != null);
     const maxCalories = caloriesValues.length ? Math.max(...caloriesValues) : null;
+    const vo2maxValues = sorted.map(r => r.vo2max).filter(v => v != null);
+    const maxVo2max = vo2maxValues.length ? Math.max(...vo2maxValues) : null;
     tableWrap.innerHTML = `
       <table>
         <thead><tr>
           <th>Date</th><th>Ville</th><th>Distance</th><th>Durée</th><th>Allure moyenne</th>
-          <th>Dénivelé +</th><th>Calories</th><th></th>
+          <th>Dénivelé +</th><th>Calories</th><th>VO2max</th><th></th>
         </tr></thead>
         <tbody>
           ${sorted.map(r => {
@@ -554,6 +598,7 @@ function renderInner() {
               <td>${fmtPace(r.durationSec, r.distanceKm)}</td>
               <td>${Math.round(r.elevGain)} m</td>
               <td class="cal-cell${maxCalories != null && r.calories === maxCalories ? ' best-calories' : ''}" style="cursor:pointer; text-decoration:underline dotted;" onclick="editCalories('${r.id}')" title="Cliquer pour saisir/modifier">${r.calories != null ? r.calories + ' kcal' : '—'}${maxCalories != null && r.calories === maxCalories ? '<span class="calories-badge">🔥 record</span>' : ''}</td>
+              <td class="${maxVo2max != null && r.vo2max === maxVo2max ? 'best-vo2max' : ''}" style="cursor:pointer; text-decoration:underline dotted;" onclick="editVo2max('${r.id}')" title="Cliquer pour saisir/modifier">${r.vo2max != null ? `${r.vo2max} <span style="color:${vo2maxAppreciation(r.vo2max).color}; font-size:0.78rem;">(${vo2maxAppreciation(r.vo2max).label})</span>` : '—'}${maxVo2max != null && r.vo2max === maxVo2max ? '<span class="vo2max-badge">⭐ record</span>' : ''}</td>
               <td class="del"><button onclick="deleteRun('${r.id}')">Suppr.</button></td>
             </tr>
           `;}).join('')}
@@ -563,24 +608,47 @@ function renderInner() {
   }
 
   renderMapPicker(sorted);
+  renderVo2maxScale();
+}
+
+function renderVo2maxScale() {
+  const withVo2max = runs.filter(r => r.vo2max != null);
+  const current = withVo2max.length
+    ? withVo2max.reduce((a, b) => new Date(b.date) > new Date(a.date) ? b : a).vo2max
+    : null;
+  document.getElementById('vo2maxScale').innerHTML = `
+    <table style="min-width:0;">
+      <thead><tr><th>Niveau</th><th>Plage (mL/kg/min)</th></tr></thead>
+      <tbody>
+        ${VO2MAX_SCALE.map(s => {
+          const isCurrent = current != null && current >= s.min && current < s.max;
+          const range = s.min === -Infinity ? `< ${s.max}` : s.max === Infinity ? `≥ ${s.min}` : `${s.min} – ${s.max}`;
+          return `<tr${isCurrent ? ' style="background:rgba(255,90,31,0.14); box-shadow:inset 0 0 0 1px var(--accent);"' : ''}>
+            <td style="color:${s.color}; font-weight:600;">${s.label}${isCurrent ? ' <span class="calories-badge">← toi</span>' : ''}</td>
+            <td>${range}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderVo2maxCard() {
-  const sorted = [...vo2maxHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const last = sorted[sorted.length - 1];
-  const prev = sorted[sorted.length - 2];
+  const withVo2max = [...runs].filter(r => r.vo2max != null).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const last = withVo2max[withVo2max.length - 1];
+  const prev = withVo2max[withVo2max.length - 2];
   if (!last) {
-    return `<div class="card" style="cursor:pointer;" onclick="addVo2max()" title="Cliquer pour ajouter une mesure">
+    return `<div class="card">
       <div class="label">VO2max</div><div class="value">—</div>
-      <div class="label" style="margin-top:6px;">Clique pour ajouter une mesure</div>
+      <div class="label" style="margin-top:6px;">Clique sur une case VO2max dans le tableau</div>
     </div>`;
   }
-  const appr = vo2maxAppreciation(last.value);
-  const diff = prev ? +(last.value - prev.value).toFixed(1) : null;
+  const appr = vo2maxAppreciation(last.vo2max);
+  const diff = prev ? +(last.vo2max - prev.vo2max).toFixed(1) : null;
   const diffTxt = diff === null ? '' : diff === 0 ? '(stable)' : diff > 0 ? `(+${diff} ▲)` : `(${diff} ▼)`;
-  return `<div class="card" style="cursor:pointer;" onclick="addVo2max()" title="Cliquer pour ajouter une mesure">
+  return `<div class="card">
     <div class="label">VO2max</div>
-    <div class="value accent">${last.value}</div>
+    <div class="value accent">${last.vo2max}</div>
     <div class="label" style="margin-top:6px; color:${appr.color};">${appr.label} ${diffTxt}</div>
   </div>`;
 }
@@ -760,13 +828,26 @@ async function autoLoadBackup() {
       }
     } catch (err) {}
   }
-  if (vo2maxHistory.length === 0) {
+  // Migre l'ancien stockage séparé (avant que le VO2max soit rattaché à chaque course) vers les courses.
+  const legacyVo2max = JSON.parse(localStorage.getItem(VO2MAX_KEY) || '[]');
+  if (legacyVo2max.length) {
+    legacyVo2max.forEach(v => {
+      const run = runs.find(r => r.date === v.date);
+      if (run && run.vo2max == null) run.vo2max = v.value;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+    localStorage.removeItem(VO2MAX_KEY);
+  }
+  if (!runs.some(r => r.vo2max != null)) {
     try {
       const res = await fetch('vo2max.json');
       if (res.ok) {
         const imported = await res.json();
-        imported.forEach(v => { if (!vo2maxHistory.some(x => x.date === v.date)) vo2maxHistory.push(v); });
-        localStorage.setItem(VO2MAX_KEY, JSON.stringify(vo2maxHistory));
+        imported.forEach(v => {
+          const run = runs.find(r => r.date === v.date);
+          if (run && run.vo2max == null) run.vo2max = v.value;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
       }
     } catch (err) {}
   }

@@ -474,7 +474,7 @@ function renderInner() {
     <div class="card"><div class="label">Courses</div><div class="value">${runs.length}</div></div>
     <div class="card"><div class="label">Distance totale</div><div class="value accent">${totalKm.toFixed(2)} km</div></div>
     <div class="card"><div class="label">Temps total</div><div class="value">${fmtDuration(totalSec)}</div></div>
-    <div class="card"><div class="label">Allure moyenne</div><div class="value">${avgPace}</div></div>
+    <div class="card"><div class="label">Allure moyenne</div><div class="value">${avgPace}</div><div class="label" style="margin-top:6px;">toutes courses confondues</div></div>
     <div class="card"><div class="label">Vitesse moyenne</div><div class="value">${totalKm ? avgSpeedKmh.toFixed(1) + ' km/h' : '—'}</div></div>
     <div class="card"><div class="label">Dernière course</div><div class="value accent">${lastRun ? lastRun.distanceKm.toFixed(2) + ' km' : '—'}</div></div>
     <div class="card"><div class="label">Série en cours</div><div class="value accent">${streakWeeks ? streakWeeks + ' semaine' + (streakWeeks > 1 ? 's' : '') : '—'}</div></div>
@@ -542,7 +542,7 @@ function renderRecords(list) {
     <div class="card">
       <div class="label">Meilleure allure</div>
       <div class="value accent">${fmtPace(fastest.durationSec, fastest.distanceKm)}</div>
-      <div class="label" style="margin-top:6px;">${dateOf(fastest)}</div>
+      <div class="label" style="margin-top:6px;">ta course la plus rapide — ${dateOf(fastest)}</div>
     </div>
     <div class="card">
       <div class="label">Plus longue durée</div>

@@ -198,11 +198,42 @@
 
 <script>
 const STORAGE_KEY = 'dashboard-course-runs';
+const VO2MAX_KEY = 'dashboard-course-vo2max';
 let runs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let vo2maxHistory = JSON.parse(localStorage.getItem(VO2MAX_KEY) || '[]');
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
   render();
+}
+
+function saveVo2max() {
+  vo2maxHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+  localStorage.setItem(VO2MAX_KEY, JSON.stringify(vo2maxHistory));
+  render();
+}
+
+// Barème Cooper, homme 40-49 ans (mL/kg/min).
+function vo2maxAppreciation(v) {
+  if (v < 30.2) return { label: 'Faible', color: '#ff5a5a' };
+  if (v < 33.6) return { label: 'Passable', color: '#ff8a3d' };
+  if (v < 38.6) return { label: 'Moyen', color: '#e8c93d' };
+  if (v < 45.2) return { label: 'Bon', color: '#33c17d' };
+  if (v < 51.0) return { label: 'Excellent', color: '#33c17d' };
+  return { label: 'Supérieur', color: '#33c17d' };
+}
+
+function addVo2max() {
+  const value = prompt('Nouvelle valeur VO2max (mL/kg/min) :');
+  if (value === null) return;
+  const val = Number(value.trim().replace(',', '.'));
+  if (!Number.isFinite(val) || val <= 0) { alert('Valeur invalide.'); return; }
+  const dateInput = prompt('Date de la mesure (JJ/MM/AAAA) :', new Date().toLocaleDateString('fr-FR'));
+  if (dateInput === null) return;
+  const [d, m, y] = dateInput.trim().split('/').map(Number);
+  const date = (d && m && y) ? new Date(y, m - 1, d) : new Date();
+  vo2maxHistory.push({ date: date.toISOString(), value: val });
+  saveVo2max();
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -490,6 +521,7 @@ function renderInner() {
     <div class="card"><div class="label">Dernière course</div><div class="value accent">${lastRun ? lastRun.distanceKm.toFixed(2) + ' km' : '—'}</div></div>
     <div class="card"><div class="label">Série en cours</div><div class="value accent">${streakWeeks ? streakWeeks + ' semaine' + (streakWeeks > 1 ? 's' : '') : '—'}</div></div>
     <div class="card"><div class="label">Calories totales</div><div class="value accent">${runsWithCalories.length ? totalCalories.toLocaleString('fr-FR') + ' kcal' : '—'}</div>${runsWithCalories.length < runs.length ? `<div class="label" style="margin-top:6px;">${runsWithCalories.length}/${runs.length} courses renseignées</div>` : ''}</div>
+    ${renderVo2maxCard()}
   `;
 
   renderRecords(runs);
@@ -531,6 +563,26 @@ function renderInner() {
   }
 
   renderMapPicker(sorted);
+}
+
+function renderVo2maxCard() {
+  const sorted = [...vo2maxHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const last = sorted[sorted.length - 1];
+  const prev = sorted[sorted.length - 2];
+  if (!last) {
+    return `<div class="card" style="cursor:pointer;" onclick="addVo2max()" title="Cliquer pour ajouter une mesure">
+      <div class="label">VO2max</div><div class="value">—</div>
+      <div class="label" style="margin-top:6px;">Clique pour ajouter une mesure</div>
+    </div>`;
+  }
+  const appr = vo2maxAppreciation(last.value);
+  const diff = prev ? +(last.value - prev.value).toFixed(1) : null;
+  const diffTxt = diff === null ? '' : diff === 0 ? '(stable)' : diff > 0 ? `(+${diff} ▲)` : `(${diff} ▼)`;
+  return `<div class="card" style="cursor:pointer;" onclick="addVo2max()" title="Cliquer pour ajouter une mesure">
+    <div class="label">VO2max</div>
+    <div class="value accent">${last.value}</div>
+    <div class="label" style="margin-top:6px; color:${appr.color};">${appr.label} ${diffTxt}</div>
+  </div>`;
 }
 
 function renderRecords(list) {
@@ -705,6 +757,16 @@ async function autoLoadBackup() {
         const imported = await res.json();
         imported.forEach(r => { if (!runs.some(x => x.id === r.id)) runs.push(r); });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+      }
+    } catch (err) {}
+  }
+  if (vo2maxHistory.length === 0) {
+    try {
+      const res = await fetch('vo2max.json');
+      if (res.ok) {
+        const imported = await res.json();
+        imported.forEach(v => { if (!vo2maxHistory.some(x => x.date === v.date)) vo2maxHistory.push(v); });
+        localStorage.setItem(VO2MAX_KEY, JSON.stringify(vo2maxHistory));
       }
     } catch (err) {}
   }

@@ -313,14 +313,16 @@ function parseTCX(xml, filename) {
     }
   });
   const trackpoints = Array.from(xml.getElementsByTagName('Trackpoint'));
-  let elevGain = 0, prevEle, prevLat, prevLon, prevTime, maxSpeedKmh = 0;
+  let elevGain = 0, prevEle, prevLat, prevLon, prevTime, maxSpeedKmh = 0, tcxDistance = 0, startTimeTcx;
   const points = [];
+  const speedWindowTcx = [];
   trackpoints.forEach(tp => {
     const ele = tcxNum(tp, 'AltitudeMeters');
     if (ele !== null && prevEle !== undefined && ele > prevEle) elevGain += (ele - prevEle);
     if (ele !== null) prevEle = ele;
     const timeEl = tp.getElementsByTagName('Time')[0];
     const time = timeEl ? new Date(timeEl.textContent) : null;
+    if (time && !startTimeTcx) startTimeTcx = time;
     const posEl = tp.getElementsByTagName('Position')[0];
     if (posEl) {
       const lat = tcxNum(posEl, 'LatitudeDegrees');
@@ -329,10 +331,17 @@ function parseTCX(xml, filename) {
         points.push([lat, lon]);
         if (prevLat !== undefined && prevTime && time) {
           const segDist = haversine(prevLat, prevLon, lat, lon);
-          const segSec = (time - prevTime) / 1000;
-          if (segSec > 0) {
-            const speedKmh = (segDist / segSec) * 3.6;
-            if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+          tcxDistance += segDist;
+          // Même correctif que pour le GPX : lissage sur 5s et 15 premières
+          // secondes ignorées (GPS pas encore stable au démarrage).
+          if ((time - startTimeTcx) / 1000 >= 15) {
+            speedWindowTcx.push({ t: time, d: tcxDistance });
+            while (speedWindowTcx.length && (time - speedWindowTcx[0].t) / 1000 > 5) speedWindowTcx.shift();
+            const windowSec = (time - speedWindowTcx[0].t) / 1000;
+            if (windowSec >= 2) {
+              const speedKmh = ((tcxDistance - speedWindowTcx[0].d) / windowSec) * 3.6;
+              if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+            }
           }
         }
         prevLat = lat; prevLon = lon;
@@ -382,7 +391,7 @@ function fmtDuration(sec) {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.round(sec % 60);
-  return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min${String(s).padStart(2,'0')}`;
+  return h > 0 ? `${h}h${String(m).padStart(2,'0')}min${String(s).padStart(2,'0')}` : `${m}min${String(s).padStart(2,'0')}`;
 }
 
 function fmtPace(sec, km) {

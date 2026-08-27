@@ -172,7 +172,10 @@
 </div>
 
 <div class="panel">
-  <h2>Allures par km</h2>
+  <div class="map-header">
+    <h2 style="margin:0;">Allures par km</h2>
+    <button class="btn" id="toggleAllSplitsBtn">Voir toutes les courses</button>
+  </div>
   <div id="splits"></div>
 </div>
 
@@ -293,9 +296,11 @@ function parseGPX(xml, filename) {
   if (extTotalTime !== null) durationSec = extTotalTime;
 
   // Dernier bout de course sous 1 km (ex: 14,21 km = 14 splits pleins + 0,21 km).
-  // Calé sur la distance officielle (distanceKm) plutôt que le tracé GPS brut,
-  // pour que la somme des allures par km corresponde exactement à la distance totale affichée.
-  const lastPartialKm = distanceKm - splits.length;
+  // Basé sur le tracé GPS brut (distance), pas sur le total officiel Huawei :
+  // caler ce dernier bout sur le total officiel répartirait tout l'écart GPS/officiel
+  // sur ce seul segment et fausserait son allure (vu sur la course du 4 avril,
+  // où l'écart GPS/officiel est plus grand — ~250m sur toute la course).
+  const lastPartialKm = (distance / 1000) - splits.length;
   if (lastPartialKm > 0.02 && lastSplitTime) {
     splits.push({ km: lastPartialKm, durationSec: (end - lastSplitTime) / 1000, partial: true });
   }
@@ -451,6 +456,7 @@ function computeStreakWeeks(list) {
 
 let selectedRunId = null;
 let leafletMap = null;
+let showAllSplits = false;
 
 function render() {
   try {
@@ -493,7 +499,7 @@ function renderInner() {
     tableWrap.innerHTML = `
       <table>
         <thead><tr>
-          <th>Date</th><th>Ville</th><th>Distance</th><th>Durée</th><th>Allure</th>
+          <th>Date</th><th>Ville</th><th>Distance</th><th>Durée</th><th>Allure moyenne</th>
           <th>Dénivelé +</th><th>FC moy.</th><th>FC max</th><th></th>
         </tr></thead>
         <tbody>
@@ -586,13 +592,11 @@ document.getElementById('runPicker').addEventListener('change', e => {
   renderMap(run);
 });
 
-function renderSplits(run) {
-  const el = document.getElementById('splits');
-  if (!run || !run.splits || !run.splits.length) {
-    el.innerHTML = '<div class="empty">Pas d\'allure par km disponible pour cette course (ancien import à refaire).</div>';
-    return;
+function splitsTable(run) {
+  if (!run.splits || !run.splits.length) {
+    return '<div class="empty">Pas d\'allure par km disponible pour cette course (ancien import à refaire).</div>';
   }
-  el.innerHTML = `
+  return `
     <table>
       <thead><tr><th>Km</th><th>Allure</th></tr></thead>
       <tbody>
@@ -606,6 +610,37 @@ function renderSplits(run) {
     </table>
   `;
 }
+
+function renderSplits(run) {
+  const el = document.getElementById('splits');
+  const btn = document.getElementById('toggleAllSplitsBtn');
+  btn.textContent = showAllSplits ? 'Revenir à une seule course' : 'Voir toutes les courses';
+
+  if (showAllSplits) {
+    const sorted = [...runs].sort((a,b) => new Date(b.date) - new Date(a.date));
+    if (!sorted.length) {
+      el.innerHTML = '<div class="empty">Importe des courses pour voir leurs allures par km.</div>';
+      return;
+    }
+    el.innerHTML = sorted.map(r => `
+      <h3 style="margin:16px 0 8px;">${new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'})} — ${r.distanceKm.toFixed(2)} km</h3>
+      ${splitsTable(r)}
+    `).join('');
+    return;
+  }
+
+  if (!run) {
+    el.innerHTML = '<div class="empty">Importe des courses pour voir leurs allures par km.</div>';
+    return;
+  }
+  el.innerHTML = splitsTable(run);
+}
+
+document.getElementById('toggleAllSplitsBtn').addEventListener('click', () => {
+  showAllSplits = !showAllSplits;
+  const run = runs.find(r => r.id === selectedRunId);
+  renderSplits(run);
+});
 
 function renderMap(run) {
   renderSplits(run);

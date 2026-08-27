@@ -513,8 +513,6 @@ function renderRecords(list) {
     return;
   }
   const longest = list.reduce((a,b) => b.distanceKm > a.distanceKm ? b : a);
-  const withPace = list.filter(r => r.distanceKm > 0);
-  const fastest = withPace.reduce((a,b) => (b.durationSec/b.distanceKm) < (a.durationSec/a.distanceKm) ? b : a);
   const longestDuration = list.reduce((a,b) => b.durationSec > a.durationSec ? b : a);
   const bestElev = list.reduce((a,b) => b.elevGain > a.elevGain ? b : a);
   const dateOf = r => new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
@@ -524,11 +522,6 @@ function renderRecords(list) {
       <div class="label">Plus longue distance</div>
       <div class="value accent">${longest.distanceKm.toFixed(2)} km</div>
       <div class="label" style="margin-top:6px;">${dateOf(longest)}</div>
-    </div>
-    <div class="card">
-      <div class="label">Meilleure allure</div>
-      <div class="value accent">${fmtPace(fastest.durationSec, fastest.distanceKm)}</div>
-      <div class="label" style="margin-top:6px;">ta course la plus rapide — ${dateOf(fastest)}</div>
     </div>
     <div class="card">
       <div class="label">Plus longue durée</div>

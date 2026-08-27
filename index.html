@@ -281,12 +281,6 @@ function parseGPX(xml, filename) {
   const end = times[times.length - 1] || start;
   let durationSec = (end - start) / 1000;
 
-  // Dernier bout de course sous 1 km (ex: 14,21 km = 14 splits pleins + 0,21 km).
-  const lastPartialKm = (distance / 1000) - splits.length;
-  if (lastPartialKm > 0.02 && lastSplitTime) {
-    splits.push({ km: lastPartialKm, durationSec: (end - lastSplitTime) / 1000, partial: true });
-  }
-
   // Huawei Santé (et d'autres apps) écrivent leurs propres totaux mesurés dans
   // <extensions> (distance, dénivelé, durée) — plus fiables que ce qu'on recalcule
   // à partir des points GPS bruts, qui perdent en précision (bruit GPS, points
@@ -297,6 +291,14 @@ function parseGPX(xml, filename) {
   const distanceKm = extTotalDistance !== null ? extTotalDistance / 1000 : distance / 1000;
   if (extCumulativeClimb !== null) elevGain = extCumulativeClimb;
   if (extTotalTime !== null) durationSec = extTotalTime;
+
+  // Dernier bout de course sous 1 km (ex: 14,21 km = 14 splits pleins + 0,21 km).
+  // Calé sur la distance officielle (distanceKm) plutôt que le tracé GPS brut,
+  // pour que la somme des allures par km corresponde exactement à la distance totale affichée.
+  const lastPartialKm = distanceKm - splits.length;
+  if (lastPartialKm > 0.02 && lastSplitTime) {
+    splits.push({ km: lastPartialKm, durationSec: (end - lastSplitTime) / 1000, partial: true });
+  }
 
   return {
     id: filename + '-' + start.getTime(),

@@ -621,8 +621,21 @@ async function resolveCities() {
   }
 }
 
-render();
-resolveCities();
+async function autoLoadBackup() {
+  if (runs.length === 0) {
+    try {
+      const res = await fetch('sauvegarde.json');
+      if (res.ok) {
+        const imported = await res.json();
+        imported.forEach(r => { if (!runs.some(x => x.id === r.id)) runs.push(r); });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+      }
+    } catch (err) {}
+  }
+  render();
+  resolveCities();
+}
+autoLoadBackup();
 </script>
 </body>
 </html>

@@ -212,7 +212,7 @@ function parseGPX(xml, filename) {
   const trkpts = Array.from(xml.getElementsByTagName('trkpt'));
   if (!trkpts.length) return null;
   let distance = 0, elevGain = 0, hrSum = 0, hrCount = 0, hrMax = 0, maxSpeedKmh = 0;
-  let prevLat, prevLon, prevEle, prevTime;
+  let prevLat, prevLon, prevEle, prevTime, startTime;
   const times = [];
   const points = [];
   const speedWindow = [];
@@ -225,10 +225,14 @@ function parseGPX(xml, filename) {
     const timeEl = pt.getElementsByTagName('time')[0];
     const time = timeEl ? new Date(timeEl.textContent) : null;
     if (time) times.push(time);
+    if (time && !startTime) startTime = time;
     if (prevLat !== undefined) {
       const segDist = haversine(prevLat, prevLon, lat, lon);
       distance += segDist;
-      if (time) {
+      // Les 15 premières secondes d'un enregistrement sont ignorées pour la vitesse max :
+      // le GPS n'a souvent pas encore de position stable juste après le démarrage,
+      // ce qui peut faire croire à un faux pic de vitesse au tout début de la course.
+      if (time && (time - startTime) / 1000 >= 15) {
         // Vitesse max lissée sur une fenêtre de 5s : une vitesse instantanée
         // point-à-point est trop sensible au bruit GPS (rebonds sous les arbres,
         // entre bâtiments) et fait apparaître des pics de vitesse irréalistes.

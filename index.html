@@ -259,11 +259,23 @@ function parseGPX(xml, filename) {
   });
   const start = times[0] || new Date();
   const end = times[times.length - 1] || start;
-  const durationSec = (end - start) / 1000;
+  let durationSec = (end - start) / 1000;
+
+  // Huawei Santé (et d'autres apps) écrivent leurs propres totaux mesurés dans
+  // <extensions> (distance, dénivelé, durée) — plus fiables que ce qu'on recalcule
+  // à partir des points GPS bruts, qui perdent en précision (bruit GPS, points
+  // arrondis). On les préfère quand ils sont présents.
+  const extTotalDistance = tcxNum(xml, 'totalDistance');
+  const extCumulativeClimb = tcxNum(xml, 'cumulativeClimb');
+  const extTotalTime = tcxNum(xml, 'totalTime');
+  const distanceKm = extTotalDistance !== null ? extTotalDistance / 1000 : distance / 1000;
+  if (extCumulativeClimb !== null) elevGain = extCumulativeClimb;
+  if (extTotalTime !== null) durationSec = extTotalTime;
+
   return {
     id: filename + '-' + start.getTime(),
     date: start.toISOString(),
-    distanceKm: distance / 1000,
+    distanceKm,
     durationSec,
     elevGain,
     avgHr: hrCount ? Math.round(hrSum / hrCount) : null,

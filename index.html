@@ -307,13 +307,15 @@ function tcxNum(el, tag) {
 function parseTCX(xml, filename) {
   const laps = Array.from(xml.getElementsByTagName('Lap'));
   if (!laps.length) return null;
-  let distance = 0, durationSec = 0, hrWeighted = 0, hrMax = 0, hasHr = false;
+  let distance = 0, durationSec = 0, hrWeighted = 0, hrMax = 0, hasHr = false, cumulativeClimb = 0, hasCumulativeClimb = false;
   let startTime = laps[0].getAttribute('StartTime');
   laps.forEach(lap => {
     const d = tcxNum(lap, 'DistanceMeters') || 0;
     const t = tcxNum(lap, 'TotalTimeSeconds') || 0;
     distance += d;
     durationSec += t;
+    const climb = tcxNum(lap, 'CumulativeClimb');
+    if (climb !== null) { cumulativeClimb += climb; hasCumulativeClimb = true; }
     const avgHrEl = lap.getElementsByTagName('AverageHeartRateBpm')[0];
     const maxHrEl = lap.getElementsByTagName('MaximumHeartRateBpm')[0];
     if (avgHrEl) {
@@ -367,7 +369,7 @@ function parseTCX(xml, filename) {
     date: new Date(startTime).toISOString(),
     distanceKm: distance / 1000,
     durationSec,
-    elevGain,
+    elevGain: hasCumulativeClimb ? cumulativeClimb : elevGain,
     avgHr: hasHr && durationSec ? Math.round(hrWeighted / durationSec) : null,
     maxHr: hrMax || null,
     maxSpeedKmh: maxSpeedKmh || null,

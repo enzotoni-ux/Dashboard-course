@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Course</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0f1512;
+    --panel: #17201c;
+    --panel-2: #1e2924;
+    --border: #2a352f;
+    --text: #eef2ee;
+    --muted: #9fb0a6;
+    --accent: #ff5a1f;
+    --accent-2: #33c17d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 32px;
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 28px; font-size: 0.9rem; }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 28px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .dropzone.drag { border-color: var(--accent); background: #241a14; color: var(--text); }
+  .dropzone input { display: none; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card .label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; }
+  .card .value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; }
+  .card .value.accent { color: var(--accent); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .panel h2 { margin: 0 0 16px; font-size: 1.05rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 640px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; }
+  tr:hover td { background: var(--panel-2); }
+  td.del { text-align: right; }
+  td.del button {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 3px 8px; cursor: pointer; font-size: 0.75rem;
+  }
+  td.del button:hover { color: var(--accent); border-color: var(--accent); }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+  .btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+
+  input[type=file] { color: var(--muted); }
+
+  .best-row td {
+    background: rgba(255, 90, 31, 0.14);
+    box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px 2px rgba(255, 90, 31, 0.55);
+    color: #fff;
+  }
+  .best-row td:first-child { position: relative; }
+  .best-badge {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(255, 90, 31, 0.9);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .longest-row td {
+    background: rgba(51, 193, 125, 0.14);
+    box-shadow: inset 0 0 0 1px var(--accent-2), 0 0 18px 2px rgba(51, 193, 125, 0.55);
+    color: #fff;
+  }
+  .longest-badge {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--accent-2);
+    text-shadow: 0 0 8px rgba(51, 193, 125, 0.9);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .best-row.longest-row td {
+    background: linear-gradient(90deg, rgba(255, 90, 31, 0.14), rgba(51, 193, 125, 0.14));
+    box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px 2px rgba(255, 90, 31, 0.4), 0 0 18px 2px rgba(51, 193, 125, 0.4);
+  }
+
+  .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  select#runPicker {
+    background: var(--panel-2); border: 1px solid var(--accent); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+  }
+  #map { height: 380px; border-radius: 10px; background: var(--panel-2); }
+  .map-empty { color: var(--muted); text-align: center; padding: 60px 0; }
+
+</style>
+</head>
+<body>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap;">
+  <div>
+    <h1>Dashboard Course</h1>
+    <div class="sub">Importe tes fichiers GPX ou TCX exportés depuis Huawei Santé après chaque course.</div>
+  </div>
+  <img src="moretti.jpg" alt="Birra Moretti" style="max-width:180px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+</div>
+
+<div class="dropzone" id="dropzone">
+  Glisse un ou plusieurs fichiers .gpx / .tcx ici, ou clique pour choisir
+  <input type="file" id="fileInput" accept=".gpx,.tcx" multiple>
+</div>
+
+<div class="toolbar">
+  <button class="btn" id="exportBtn">Exporter la sauvegarde (JSON)</button>
+  <button class="btn" id="importBtn">Importer une sauvegarde</button>
+  <input type="file" id="importFile" accept=".json" style="display:none">
+  <button class="btn" id="clearBtn">Tout effacer</button>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="panel">
+  <div class="map-header">
+    <h2 style="margin:0;">Tracé du parcours</h2>
+    <label style="display:flex; align-items:center; gap:8px; color:var(--text); font-size:0.9rem;">
+      Choisir une course :
+      <select id="runPicker"></select>
+    </label>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="panel">
+  <h2>Records personnels</h2>
+  <div class="cards" id="records"></div>
+</div>
+
+<div class="panel">
+  <h2>Historique des courses</h2>
+  <div id="tableWrap"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'dashboard-course-runs';
+let runs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+  render();
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function downsample(points, maxPoints) {
+  if (points.length <= maxPoints) return points;
+  const stride = Math.ceil(points.length / maxPoints);
+  const sampled = points.filter((_, i) => i % stride === 0);
+  const last = points[points.length - 1];
+  if (sampled[sampled.length - 1] !== last) sampled.push(last);
+  return sampled;
+}
+
+function parseGPX(xml, filename) {
+  const trkpts = Array.from(xml.getElementsByTagName('trkpt'));
+  if (!trkpts.length) return null;
+  let distance = 0, elevGain = 0, hrSum = 0, hrCount = 0, hrMax = 0, maxSpeedKmh = 0;
+  let prevLat, prevLon, prevEle, prevTime;
+  const times = [];
+  const points = [];
+  trkpts.forEach(pt => {
+    const lat = parseFloat(pt.getAttribute('lat'));
+    const lon = parseFloat(pt.getAttribute('lon'));
+    points.push([lat, lon]);
+    const eleEl = pt.getElementsByTagName('ele')[0];
+    const ele = eleEl ? parseFloat(eleEl.textContent) : null;
+    const timeEl = pt.getElementsByTagName('time')[0];
+    const time = timeEl ? new Date(timeEl.textContent) : null;
+    if (time) times.push(time);
+    if (prevLat !== undefined) {
+      const segDist = haversine(prevLat, prevLon, lat, lon);
+      distance += segDist;
+      if (prevTime && time) {
+        const segSec = (time - prevTime) / 1000;
+        if (segSec > 0) {
+          const speedKmh = (segDist / segSec) * 3.6;
+          if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+        }
+      }
+    }
+    if (ele !== null && prevEle !== undefined && ele > prevEle) elevGain += (ele - prevEle);
+    prevLat = lat; prevLon = lon; prevEle = ele; prevTime = time;
+    let hrEl = pt.getElementsByTagName('hr')[0];
+    if (!hrEl) {
+      const all = pt.getElementsByTagName('*');
+      for (const el of all) if (el.localName === 'hr') { hrEl = el; break; }
+    }
+    if (hrEl) {
+      const hr = parseFloat(hrEl.textContent);
+      if (!isNaN(hr)) { hrSum += hr; hrCount++; if (hr > hrMax) hrMax = hr; }
+    }
+  });
+  const start = times[0] || new Date();
+  const end = times[times.length - 1] || start;
+  const durationSec = (end - start) / 1000;
+  return {
+    id: filename + '-' + start.getTime(),
+    date: start.toISOString(),
+    distanceKm: distance / 1000,
+    durationSec,
+    elevGain,
+    avgHr: hrCount ? Math.round(hrSum / hrCount) : null,
+    maxHr: hrCount ? hrMax : null,
+    maxSpeedKmh: maxSpeedKmh || null,
+    source: filename,
+    points: downsample(points, 500)
+  };
+}
+
+function tcxNum(el, tag) {
+  const n = el.getElementsByTagName(tag)[0];
+  return n ? parseFloat(n.textContent) : null;
+}
+
+function parseTCX(xml, filename) {
+  const laps = Array.from(xml.getElementsByTagName('Lap'));
+  if (!laps.length) return null;
+  let distance = 0, durationSec = 0, hrWeighted = 0, hrMax = 0, hasHr = false;
+  let startTime = laps[0].getAttribute('StartTime');
+  laps.forEach(lap => {
+    const d = tcxNum(lap, 'DistanceMeters') || 0;
+    const t = tcxNum(lap, 'TotalTimeSeconds') || 0;
+    distance += d;
+    durationSec += t;
+    const avgHrEl = lap.getElementsByTagName('AverageHeartRateBpm')[0];
+    const maxHrEl = lap.getElementsByTagName('MaximumHeartRateBpm')[0];
+    if (avgHrEl) {
+      const v = tcxNum(avgHrEl, 'Value');
+      if (v) { hrWeighted += v * t; hasHr = true; }
+    }
+    if (maxHrEl) {
+      const v = tcxNum(maxHrEl, 'Value');
+      if (v && v > hrMax) hrMax = v;
+    }
+  });
+  const trackpoints = Array.from(xml.getElementsByTagName('Trackpoint'));
+  let elevGain = 0, prevEle, prevLat, prevLon, prevTime, maxSpeedKmh = 0;
+  const points = [];
+  trackpoints.forEach(tp => {
+    const ele = tcxNum(tp, 'AltitudeMeters');
+    if (ele !== null && prevEle !== undefined && ele > prevEle) elevGain += (ele - prevEle);
+    if (ele !== null) prevEle = ele;
+    const timeEl = tp.getElementsByTagName('Time')[0];
+    const time = timeEl ? new Date(timeEl.textContent) : null;
+    const posEl = tp.getElementsByTagName('Position')[0];
+    if (posEl) {
+      const lat = tcxNum(posEl, 'LatitudeDegrees');
+      const lon = tcxNum(posEl, 'LongitudeDegrees');
+      if (lat !== null && lon !== null) {
+        points.push([lat, lon]);
+        if (prevLat !== undefined && prevTime && time) {
+          const segDist = haversine(prevLat, prevLon, lat, lon);
+          const segSec = (time - prevTime) / 1000;
+          if (segSec > 0) {
+            const speedKmh = (segDist / segSec) * 3.6;
+            if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+          }
+        }
+        prevLat = lat; prevLon = lon;
+      }
+    }
+    if (time) prevTime = time;
+  });
+  return {
+    id: filename + '-' + new Date(startTime).getTime(),
+    date: new Date(startTime).toISOString(),
+    distanceKm: distance / 1000,
+    durationSec,
+    elevGain,
+    avgHr: hasHr && durationSec ? Math.round(hrWeighted / durationSec) : null,
+    maxHr: hrMax || null,
+    maxSpeedKmh: maxSpeedKmh || null,
+    source: filename,
+    points: downsample(points, 500)
+  };
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const xml = new DOMParser().parseFromString(e.target.result, 'text/xml');
+      const isTcx = xml.getElementsByTagName('TrainingCenterDatabase').length > 0;
+      const run = isTcx ? parseTCX(xml, file.name) : parseGPX(xml, file.name);
+      if (run) {
+        const existingIndex = runs.findIndex(r => r.id === run.id);
+        if (existingIndex >= 0) {
+          runs[existingIndex] = run;
+        } else {
+          runs.push(run);
+        }
+        save();
+        resolveCities();
+      } else {
+        alert('Impossible de lire ' + file.name + ' (format non reconnu)');
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function fmtDuration(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.round(sec % 60);
+  return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min${String(s).padStart(2,'0')}`;
+}
+
+function fmtPace(sec, km) {
+  if (!km) return '—';
+  const paceSec = sec / km;
+  const m = Math.floor(paceSec / 60);
+  const s = Math.round(paceSec % 60);
+  return `${m}:${String(s).padStart(2,'0')} /km`;
+}
+
+function weekIndex(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = (d.getDay() + 6) % 7; // lundi = 0
+  d.setDate(d.getDate() - day);
+  return Math.floor(d.getTime() / (7 * 24 * 3600 * 1000));
+}
+
+function computeStreakWeeks(list) {
+  const weekIdxs = [...new Set(list.map(r => weekIndex(new Date(r.date))))].sort((a, b) => b - a);
+  if (!weekIdxs.length) return 0;
+  let streak = 1;
+  for (let i = 1; i < weekIdxs.length; i++) {
+    if (weekIdxs[i - 1] - weekIdxs[i] === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+let selectedRunId = null;
+let leafletMap = null;
+
+function render() {
+  try {
+    renderInner();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('cards').insertAdjacentHTML('beforebegin',
+      `<div class="empty" style="color:var(--accent);">Erreur d'affichage : ${err.message}. Regarde la console (F12) pour le détail.</div>`);
+  }
+}
+
+function renderInner() {
+  const sorted = [...runs].sort((a,b) => new Date(b.date) - new Date(a.date));
+  const totalKm = runs.reduce((s,r) => s + r.distanceKm, 0);
+  const totalSec = runs.reduce((s,r) => s + r.durationSec, 0);
+  const weekAgo = Date.now() - 7*24*3600*1000;
+  const weekKm = runs.filter(r => new Date(r.date).getTime() >= weekAgo).reduce((s,r) => s + r.distanceKm, 0);
+  const avgPace = totalKm ? fmtPace(totalSec, totalKm) : '—';
+  const avgSpeedKmh = totalSec ? (totalKm / (totalSec / 3600)) : 0;
+  const maxSpeed = runs.reduce((max, r) => r.maxSpeedKmh && r.maxSpeedKmh > max ? r.maxSpeedKmh : max, 0);
+  const streakWeeks = computeStreakWeeks(runs);
+
+  const lastRun = sorted[0];
+
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="label">Courses</div><div class="value">${runs.length}</div></div>
+    <div class="card"><div class="label">Distance totale</div><div class="value accent">${totalKm.toFixed(1)} km</div></div>
+    <div class="card"><div class="label">Temps total</div><div class="value">${fmtDuration(totalSec)}</div></div>
+    <div class="card"><div class="label">Allure moyenne</div><div class="value">${avgPace}</div></div>
+    <div class="card"><div class="label">Vitesse moyenne</div><div class="value">${totalKm ? avgSpeedKmh.toFixed(1) + ' km/h' : '—'}</div></div>
+    <div class="card"><div class="label">Vitesse max</div><div class="value accent">${maxSpeed ? maxSpeed.toFixed(1) + ' km/h' : '—'}</div></div>
+    <div class="card"><div class="label">Cette semaine</div><div class="value accent">${weekKm.toFixed(1)} km</div></div>
+    <div class="card"><div class="label">Dernière course</div><div class="value accent">${lastRun ? lastRun.distanceKm.toFixed(1) + ' km' : '—'}</div></div>
+    <div class="card"><div class="label">Série en cours</div><div class="value accent">${streakWeeks ? streakWeeks + ' semaine' + (streakWeeks > 1 ? 's' : '') : '—'}</div></div>
+  `;
+
+  renderRecords(runs);
+
+  const tableWrap = document.getElementById('tableWrap');
+  if (!sorted.length) {
+    tableWrap.innerHTML = '<div class="empty">Aucune course importée pour le moment.</div>';
+  } else {
+    const bestDurationSec = Math.min(...sorted.map(r => r.durationSec));
+    const longestDistanceKm = Math.max(...sorted.map(r => r.distanceKm));
+    tableWrap.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Ville</th><th>Distance</th><th>Durée</th><th>Allure</th>
+          <th>Dénivelé +</th><th>FC moy.</th><th>FC max</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${sorted.map(r => {
+            const isBest = r.durationSec === bestDurationSec;
+            const isLongest = r.distanceKm === longestDistanceKm;
+            const classes = [isBest && 'best-row', isLongest && 'longest-row'].filter(Boolean).join(' ');
+            return `
+            <tr${classes ? ` class="${classes}"` : ''}>
+              <td>${new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'})}${isBest ? '<span class="best-badge">★ meilleure perf</span>' : ''}${isLongest ? '<span class="longest-badge">⬤ plus longue distance</span>' : ''}</td>
+              <td>${r.city === undefined ? '…' : (r.city || '—')}</td>
+              <td>${r.distanceKm.toFixed(2)} km</td>
+              <td>${fmtDuration(r.durationSec)}</td>
+              <td>${fmtPace(r.durationSec, r.distanceKm)}</td>
+              <td>${Math.round(r.elevGain)} m</td>
+              <td>${r.avgHr ?? '—'}</td>
+              <td>${r.maxHr ?? '—'}</td>
+              <td class="del"><button onclick="deleteRun('${r.id}')">Suppr.</button></td>
+            </tr>
+          `;}).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  renderMapPicker(sorted);
+}
+
+function renderRecords(list) {
+  const el = document.getElementById('records');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">Importe des courses pour voir tes records.</div>';
+    return;
+  }
+  const longest = list.reduce((a,b) => b.distanceKm > a.distanceKm ? b : a);
+  const withPace = list.filter(r => r.distanceKm > 0);
+  const fastest = withPace.reduce((a,b) => (b.durationSec/b.distanceKm) < (a.durationSec/a.distanceKm) ? b : a);
+  const longestDuration = list.reduce((a,b) => b.durationSec > a.durationSec ? b : a);
+  const bestElev = list.reduce((a,b) => b.elevGain > a.elevGain ? b : a);
+  const dateOf = r => new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="label">Plus longue distance</div>
+      <div class="value accent">${longest.distanceKm.toFixed(2)} km</div>
+      <div class="label" style="margin-top:6px;">${dateOf(longest)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Meilleure allure</div>
+      <div class="value accent">${fmtPace(fastest.durationSec, fastest.distanceKm)}</div>
+      <div class="label" style="margin-top:6px;">${dateOf(fastest)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Plus longue durée</div>
+      <div class="value accent">${fmtDuration(longestDuration.durationSec)}</div>
+      <div class="label" style="margin-top:6px;">${dateOf(longestDuration)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Plus gros dénivelé +</div>
+      <div class="value accent">${Math.round(bestElev.elevGain)} m</div>
+      <div class="label" style="margin-top:6px;">${dateOf(bestElev)}</div>
+    </div>
+  `;
+}
+
+function renderMapPicker(sorted) {
+  const picker = document.getElementById('runPicker');
+  if (!sorted.length) {
+    picker.innerHTML = '';
+    picker.style.display = 'none';
+    renderMap(null);
+    return;
+  }
+  picker.style.display = '';
+  if (!selectedRunId || !sorted.some(r => r.id === selectedRunId)) {
+    selectedRunId = sorted[0].id;
+  }
+  picker.innerHTML = sorted.map(r => `
+    <option value="${r.id}" ${r.id === selectedRunId ? 'selected' : ''}>
+      ${new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'})} — ${r.distanceKm.toFixed(2)} km
+    </option>
+  `).join('');
+  const run = sorted.find(r => r.id === selectedRunId);
+  renderMap(run);
+}
+
+document.getElementById('runPicker').addEventListener('change', e => {
+  selectedRunId = e.target.value;
+  const run = runs.find(r => r.id === selectedRunId);
+  renderMap(run);
+});
+
+function renderMap(run) {
+  const mapEl = document.getElementById('map');
+  const latlngs = (run && run.points ? run.points : [])
+    .map(p => Array.isArray(p) ? p : [p.lat, p.lon])
+    .filter(([lat, lon]) => Number.isFinite(lat) && Number.isFinite(lon));
+
+  if (latlngs.length < 2) {
+    if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+    mapEl.innerHTML = '<div class="map-empty">Pas de tracé GPS pour cette course (fichier sans coordonnées, ou ancien import à refaire).</div>';
+    return;
+  }
+  if (!leafletMap) {
+    mapEl.innerHTML = '';
+    leafletMap = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(leafletMap);
+  }
+  if (leafletMap._trackLayer) leafletMap.removeLayer(leafletMap._trackLayer);
+  const line = L.polyline(latlngs, { color: '#ff5a1f', weight: 4 });
+  leafletMap._trackLayer = line.addTo(leafletMap);
+  leafletMap.fitBounds(line.getBounds(), { padding: [20, 20] });
+  setTimeout(() => leafletMap.invalidateSize(), 50);
+}
+
+function deleteRun(id) {
+  runs = runs.filter(r => r.id !== id);
+  save();
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(runs, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dashboard-course-sauvegarde.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      imported.forEach(r => { if (!runs.some(x => x.id === r.id)) runs.push(r); });
+      save();
+    } catch (err) { alert('Fichier de sauvegarde invalide.'); }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (confirm('Supprimer toutes les courses enregistrées ?')) { runs = []; save(); }
+});
+
+async function resolveCities() {
+  const pending = runs.filter(r => r.city === undefined);
+  for (const run of pending) {
+    if (!run.points || !run.points.length) {
+      run.city = null;
+      continue;
+    }
+    try {
+      const [lat, lon] = run.points[0];
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=12&addressdetails=1`);
+      const data = await res.json();
+      const addr = data.address || {};
+      run.city = addr.city || addr.town || addr.village || addr.municipality || addr.county || null;
+    } catch (err) {
+      run.city = null;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+    render();
+    await new Promise(res => setTimeout(res, 1000));
+  }
+}
+
+render();
+resolveCities();
+</script>
+</body>
+</html>

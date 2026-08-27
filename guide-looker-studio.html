@@ -1,0 +1,372 @@
+<title>Dashboard Course sur Looker Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #f3f6f4;
+    --panel: #ffffff;
+    --ink: #17211d;
+    --muted: #55635c;
+    --border: #dbe3de;
+    --sheets: #188038;
+    --looker: #1a73e8;
+    --code-bg: #eef1ef;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #101512;
+      --panel: #171e1a;
+      --ink: #eef2ef;
+      --muted: #98a49c;
+      --border: #2a332e;
+      --sheets: #37c26a;
+      --looker: #6aa9ff;
+      --code-bg: #1c2420;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101512;
+    --panel: #171e1a;
+    --ink: #eef2ef;
+    --muted: #98a49c;
+    --border: #2a332e;
+    --sheets: #37c26a;
+    --looker: #6aa9ff;
+    --code-bg: #1c2420;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Public Sans", system-ui, sans-serif;
+    line-height: 1.55;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 24px 120px;
+  }
+
+  header.top {
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--looker);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sheets); }
+  h1 {
+    font-family: "Archivo", sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 4.5vw, 2.7rem);
+    line-height: 1.08;
+    margin: 0 0 16px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 62ch;
+  }
+
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 32px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .toc a span.n {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--looker);
+    font-size: 0.78rem;
+  }
+  .toc a:hover { text-decoration: underline; }
+
+  section.phase {
+    margin-top: 64px;
+    scroll-margin-top: 24px;
+  }
+  .phase-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .phase-num {
+    font-family: "Archivo", sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--paper);
+    background: var(--ink);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .phase h2 {
+    font-family: "Archivo", sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .phase .sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 6px 0 24px 48px;
+    max-width: 60ch;
+  }
+
+  ol.steps {
+    list-style: none;
+    margin: 0 0 0 48px;
+    padding: 0;
+    border-left: 2px solid var(--border);
+  }
+  ol.steps li {
+    position: relative;
+    padding: 0 0 28px 28px;
+  }
+  ol.steps li:last-child { padding-bottom: 4px; }
+  ol.steps li::before {
+    content: attr(data-i);
+    position: absolute;
+    left: -11px;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--looker);
+    color: var(--looker);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.steps p { margin: 0; }
+  ol.steps .path {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 7px;
+    color: var(--ink);
+  }
+  ol.steps .note {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: var(--muted);
+    border-left: 2px solid var(--sheets);
+    padding-left: 10px;
+  }
+
+  table.sheet {
+    margin: 8px 0 0 48px;
+    border-collapse: collapse;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table.sheet th, table.sheet td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  table.sheet th {
+    background: var(--code-bg);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  table.sheet tr:last-child td { border-bottom: none; }
+  table.sheet td:last-child, table.sheet th:last-child { border-right: none; }
+  .table-scroll { overflow-x: auto; }
+
+  .callout {
+    margin: 40px 0 0;
+    padding: 18px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--looker);
+    border-radius: 8px;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--ink); }
+
+  footer.end {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow"><span class="dot"></span>Sheets → Looker Studio</div>
+    <h1>Reproduire le dashboard course dans Looker Studio</h1>
+    <p class="lede">Le même suivi de course qu'on a construit en HTML, mais via Google Sheets comme source de données et Looker Studio pour la visualisation et le partage. Suis les 7 étapes dans l'ordre.</p>
+
+    <nav class="toc">
+      <a href="#phase-1"><span class="n">01</span> La feuille de données</a>
+      <a href="#phase-2"><span class="n">02</span> Connecter Looker Studio</a>
+      <a href="#phase-3"><span class="n">03</span> Vérifier les types</a>
+      <a href="#phase-4"><span class="n">04</span> Construire les visuels</a>
+      <a href="#phase-5"><span class="n">05</span> Mettre en forme</a>
+      <a href="#phase-6"><span class="n">06</span> Partager</a>
+      <a href="#phase-7"><span class="n">07</span> Mettre à jour</a>
+    </nav>
+  </header>
+
+  <section class="phase" id="phase-1">
+    <div class="phase-head"><div class="phase-num">1</div><h2>Créer la feuille de données</h2></div>
+    <p class="sub">C'est la base de tout : un tableau où chaque ligne est une course.</p>
+    <ol class="steps">
+      <li data-i="1"><p>Va sur <span class="path">sheets.google.com</span>, connecté avec ton compte Google.</p></li>
+      <li data-i="2"><p>Clique sur <span class="path">Vierge</span> (le grand carré avec le +) pour créer une nouvelle feuille.</p></li>
+      <li data-i="3"><p>En haut à gauche, clique sur <span class="path">Feuille de calcul sans titre</span> et renomme-la <strong>Mes Courses</strong>.</p></li>
+      <li data-i="4">
+        <p>Sur la ligne 1, tape ces en-têtes, une par cellule de A1 à G1 :</p>
+        <div class="table-scroll">
+          <table class="sheet">
+            <tr><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr>
+            <tr><td>Date</td><td>Ville</td><td>Distance_km</td><td>Duree_min</td><td>Allure_min_km</td><td>Denivele_m</td><td>FC_moyenne</td></tr>
+          </table>
+        </div>
+      </li>
+      <li data-i="5">
+        <p>À partir de la ligne 2, ajoute une ligne par course déjà faite :</p>
+        <div class="table-scroll">
+          <table class="sheet">
+            <tr><td>2026-08-26</td><td>Rennes</td><td>10.75</td><td>60</td><td>5.58</td><td>115</td><td>148</td></tr>
+          </table>
+        </div>
+        <span class="note">Pour l'allure, écris une valeur décimale (5min35 → <strong>5.58</strong>), pas <strong>5:35</strong> : Looker Studio ne sait pas faire de calculs sur un format texte "minutes:secondes".</span>
+      </li>
+      <li data-i="6"><p>Sélectionne toute la colonne A → clic droit → <span class="path">Format des cellules → Date</span>, pour que Sheets reconnaisse bien des dates et pas du texte.</p></li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-2">
+    <div class="phase-head"><div class="phase-num">2</div><h2>Connecter Looker Studio à la feuille</h2></div>
+    <p class="sub">Looker Studio ne stocke rien lui-même : il lit en direct ce qu'il y a dans le Sheet.</p>
+    <ol class="steps">
+      <li data-i="1"><p>Va sur <span class="path">lookerstudio.google.com</span>.</p></li>
+      <li data-i="2"><p>Clique sur <span class="path">Créer → Rapport</span> en haut à gauche.</p></li>
+      <li data-i="3"><p>Dans la fenêtre "Ajouter des données à votre rapport", clique sur le connecteur <span class="path">Google Sheets</span>.</p></li>
+      <li data-i="4"><p>Autorise l'accès si demandé, puis sélectionne le classeur <strong>Mes Courses</strong> → l'onglet <span class="path">Feuille 1</span> → coche <span class="path">Utiliser la première ligne comme en-têtes</span>.</p></li>
+      <li data-i="5"><p>Clique sur <span class="path">Ajouter</span> en bas à droite, puis confirme avec <span class="path">Ajouter au rapport</span>.</p></li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-3">
+    <div class="phase-head"><div class="phase-num">3</div><h2>Vérifier les types de champs</h2></div>
+    <p class="sub">Une étape qu'on saute souvent, et qui casse les graphiques ensuite si on l'oublie.</p>
+    <ol class="steps">
+      <li data-i="1"><p>En haut, ouvre <span class="path">Ressource → Gérer les champs ajoutés</span>.</p></li>
+      <li data-i="2"><p>Vérifie que <strong>Date</strong> a bien le type <span class="path">Date</span> (icône calendrier).</p></li>
+      <li data-i="3"><p>Vérifie que <strong>Distance_km, Duree_min, Allure_min_km, Denivele_m, FC_moyenne</strong> ont le type <span class="path">Nombre</span> (icône #). Clique sur le type pour le corriger si besoin.</p></li>
+      <li data-i="4"><p>Pour <strong>Ville</strong>, si tu veux une carte géographique plus tard : clique sur son type → catégorie <span class="path">Géo</span> → <span class="path">Ville</span>.</p></li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-4">
+    <div class="phase-head"><div class="phase-num">4</div><h2>Construire les visuels</h2></div>
+    <p class="sub">Quatre blocs suffisent pour retrouver l'essentiel du dashboard actuel.</p>
+    <ol class="steps">
+      <li data-i="1">
+        <p><strong>Indicateurs (totaux)</strong> — <span class="path">Insérer → Indicateur</span>, dessine un rectangle. Dans le panneau de droite, choisis le champ <strong>Distance_km</strong> puis règle l'agrégation sur <span class="path">Somme</span>. Répète pour <strong>Duree_min</strong> (Somme), et ajoute-en un troisième avec agrégation <span class="path">Nombre</span> pour compter tes courses.</p>
+      </li>
+      <li data-i="2">
+        <p><strong>Historique</strong> — <span class="path">Insérer → Tableau</span>, dessine-le. Ajoute les dimensions <strong>Date, Ville, Distance_km, Duree_min, Allure_min_km</strong>. Dans le panneau "Tri", trie par <strong>Date</strong> décroissant.</p>
+      </li>
+      <li data-i="3">
+        <p><strong>Progression</strong> — <span class="path">Insérer → Graphique en aires</span> (ou à barres). Dimension = <strong>Date</strong>, Métrique = <strong>Distance_km</strong>.</p>
+      </li>
+      <li data-i="4">
+        <p><strong>Carte (optionnel)</strong> — <span class="path">Insérer → Carte géographique</span>. Dimension = <strong>Ville</strong>, Métrique = <strong>Distance_km</strong>.</p>
+        <span class="note">Ça affiche un point par ville où tu as couru, mais pas le tracé réel du parcours GPS comme sur le dashboard HTML actuel — Looker Studio ne sait pas dessiner un itinéraire.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-5">
+    <div class="phase-head"><div class="phase-num">5</div><h2>Mettre en forme</h2></div>
+    <ol class="steps">
+      <li data-i="1"><p>Sélectionne tout <span class="path">(Ctrl+A)</span>, puis ouvre le panneau <span class="path">Thème et mise en page</span> à droite pour choisir une police et des couleurs cohérentes.</p></li>
+      <li data-i="2"><p>Ajoute un titre : <span class="path">Insérer → Zone de texte</span>, tape "Dashboard Course", place-le en haut.</p></li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-6">
+    <div class="phase-head"><div class="phase-num">6</div><h2>Partager</h2></div>
+    <p class="sub">C'est l'étape que le dashboard HTML actuel ne sait pas bien faire — ici c'est natif.</p>
+    <ol class="steps">
+      <li data-i="1"><p>Clique sur <span class="path">Partager</span> en haut à droite.</p></li>
+      <li data-i="2"><p>Ajoute l'email de ton ami avec le rôle <span class="path">Lecteur</span>, ou ouvre <span class="path">Gérer l'accès → Modifier → Tous les utilisateurs disposant du lien</span> pour un lien public en lecture seule.</p></li>
+      <li data-i="3"><p>Copie le lien et envoie-le où tu veux.</p></li>
+    </ol>
+  </section>
+
+  <section class="phase" id="phase-7">
+    <div class="phase-head"><div class="phase-num">7</div><h2>Mettre à jour après chaque course</h2></div>
+    <ol class="steps">
+      <li data-i="1"><p>Retourne sur ta feuille <strong>Mes Courses</strong> dans Google Sheets.</p></li>
+      <li data-i="2"><p>Ajoute une nouvelle ligne avec les infos de la course.</p></li>
+      <li data-i="3"><p>Reviens sur le rapport Looker Studio : il se met à jour automatiquement (sinon, clique sur l'icône <span class="path">Actualiser</span> en haut).</p></li>
+    </ol>
+  </section>
+
+  <div class="callout">
+    <strong>Ce que tu gagnes vs le dashboard HTML :</strong> partage en un clic, mise en forme sans coder, accès depuis n'importe quel appareil connecté à ton compte Google.<br><br>
+    <strong>Ce que tu perds :</strong> plus d'import automatique de fichier GPX/TCX (ici tu tapes les chiffres à la main après chaque course), et plus de carte avec le tracé réel du parcours — juste un point par ville.
+  </div>
+
+  <footer class="end">Dashboard Course — guide de reproduction Looker Studio</footer>
+
+</div>

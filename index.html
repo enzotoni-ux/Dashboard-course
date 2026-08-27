@@ -215,6 +215,7 @@ function parseGPX(xml, filename) {
   let prevLat, prevLon, prevEle, prevTime;
   const times = [];
   const points = [];
+  const speedWindow = [];
   trkpts.forEach(pt => {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lon = parseFloat(pt.getAttribute('lon'));
@@ -227,10 +228,15 @@ function parseGPX(xml, filename) {
     if (prevLat !== undefined) {
       const segDist = haversine(prevLat, prevLon, lat, lon);
       distance += segDist;
-      if (prevTime && time) {
-        const segSec = (time - prevTime) / 1000;
-        if (segSec > 0) {
-          const speedKmh = (segDist / segSec) * 3.6;
+      if (time) {
+        // Vitesse max lissée sur une fenêtre de 5s : une vitesse instantanée
+        // point-à-point est trop sensible au bruit GPS (rebonds sous les arbres,
+        // entre bâtiments) et fait apparaître des pics de vitesse irréalistes.
+        speedWindow.push({ t: time, d: distance });
+        while (speedWindow.length && (time - speedWindow[0].t) / 1000 > 5) speedWindow.shift();
+        const windowSec = (time - speedWindow[0].t) / 1000;
+        if (windowSec >= 2) {
+          const speedKmh = ((distance - speedWindow[0].d) / windowSec) * 3.6;
           if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
         }
       }

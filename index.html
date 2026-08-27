@@ -172,6 +172,11 @@
 </div>
 
 <div class="panel">
+  <h2>Allures par km</h2>
+  <div id="splits"></div>
+</div>
+
+<div class="panel">
   <h2>Records personnels</h2>
   <div class="cards" id="records"></div>
 </div>
@@ -216,6 +221,8 @@ function parseGPX(xml, filename) {
   const times = [];
   const points = [];
   const speedWindow = [];
+  const splits = [];
+  let nextSplitKm = 1, lastSplitTime;
   trkpts.forEach(pt => {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lon = parseFloat(pt.getAttribute('lon'));
@@ -225,10 +232,23 @@ function parseGPX(xml, filename) {
     const timeEl = pt.getElementsByTagName('time')[0];
     const time = timeEl ? new Date(timeEl.textContent) : null;
     if (time) times.push(time);
-    if (time && !startTime) startTime = time;
+    if (time && !startTime) { startTime = time; lastSplitTime = time; }
     if (prevLat !== undefined) {
       const segDist = haversine(prevLat, prevLon, lat, lon);
+      const distBefore = distance;
       distance += segDist;
+      // Découpe la course en tranches de 1 km réel : on interpole l'heure exacte
+      // de passage à chaque borne de km à partir des deux points GPS qui l'entourent.
+      if (time && prevTime && segDist > 0) {
+        while (distance >= nextSplitKm * 1000) {
+          const distAtSplit = nextSplitKm * 1000;
+          const frac = (distAtSplit - distBefore) / segDist;
+          const timeAtSplit = new Date(prevTime.getTime() + frac * (time - prevTime));
+          splits.push({ km: nextSplitKm, durationSec: (timeAtSplit - lastSplitTime) / 1000 });
+          lastSplitTime = timeAtSplit;
+          nextSplitKm++;
+        }
+      }
       // Les 15 premières secondes d'un enregistrement sont ignorées pour la vitesse max :
       // le GPS n'a souvent pas encore de position stable juste après le démarrage,
       // ce qui peut faire croire à un faux pic de vitesse au tout début de la course.
@@ -261,6 +281,12 @@ function parseGPX(xml, filename) {
   const end = times[times.length - 1] || start;
   let durationSec = (end - start) / 1000;
 
+  // Dernier bout de course sous 1 km (ex: 14,21 km = 14 splits pleins + 0,21 km).
+  const lastPartialKm = (distance / 1000) - splits.length;
+  if (lastPartialKm > 0.02 && lastSplitTime) {
+    splits.push({ km: lastPartialKm, durationSec: (end - lastSplitTime) / 1000, partial: true });
+  }
+
   // Huawei Santé (et d'autres apps) écrivent leurs propres totaux mesurés dans
   // <extensions> (distance, dénivelé, durée) — plus fiables que ce qu'on recalcule
   // à partir des points GPS bruts, qui perdent en précision (bruit GPS, points
@@ -282,7 +308,8 @@ function parseGPX(xml, filename) {
     maxHr: hrCount ? hrMax : null,
     maxSpeedKmh: maxSpeedKmh || null,
     source: filename,
-    points: downsample(points, 500)
+    points: downsample(points, 500),
+    splits
   };
 }
 
@@ -396,9 +423,9 @@ function fmtDuration(sec) {
 
 function fmtPace(sec, km) {
   if (!km) return '—';
-  const paceSec = sec / km;
+  const paceSec = Math.round(sec / km);
   const m = Math.floor(paceSec / 60);
-  const s = Math.round(paceSec % 60);
+  const s = paceSec % 60;
   return `${m}:${String(s).padStart(2,'0')} /km`;
 }
 
@@ -560,7 +587,29 @@ document.getElementById('runPicker').addEventListener('change', e => {
   renderMap(run);
 });
 
+function renderSplits(run) {
+  const el = document.getElementById('splits');
+  if (!run || !run.splits || !run.splits.length) {
+    el.innerHTML = '<div class="empty">Pas d\'allure par km disponible pour cette course (ancien import à refaire).</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Km</th><th>Allure</th></tr></thead>
+      <tbody>
+        ${run.splits.map(s => `
+          <tr>
+            <td>${s.partial ? s.km.toFixed(2) : s.km}</td>
+            <td>${fmtPace(s.durationSec, s.partial ? s.km : 1)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderMap(run) {
+  renderSplits(run);
   const mapEl = document.getElementById('map');
   const latlngs = (run && run.points ? run.points : [])
     .map(p => Array.isArray(p) ? p : [p.lat, p.lon])

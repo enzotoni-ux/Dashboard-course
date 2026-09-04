@@ -229,6 +229,7 @@
   <h2>Barème VO2max (Homme, 48 ans — référence Cooper)</h2>
   <div id="vo2maxScale"></div>
   <div style="margin-top:20px; color:var(--muted); font-size:0.88rem; line-height:1.6;">
+    <p style="margin:0 0 16px;">Le VO2max, c'est la quantité maximale d'oxygène que ton corps est capable d'absorber et d'utiliser par minute pendant un effort intense (exprimée en mL d'oxygène par kg de poids corporel et par minute). Plus il est élevé, plus ton cœur et tes muscles savent exploiter l'oxygène efficacement — c'est un des meilleurs indicateurs de ta condition cardiovasculaire.</p>
     <p class="tips-title" style="color:var(--text); margin:0 0 8px; font-weight:600;"><span class="tips-icon">💡</span> Comment l'améliorer :</p>
     <ul style="margin:0; padding-left:20px;">
       <li><strong style="color:var(--text);">Le fractionné / interval training</strong> — c'est le levier n°1. Alterner efforts courts et intenses (ex: 30s-1min à fond) avec récupération. Ça stimule directement le cœur et les muscles à consommer plus d'oxygène.</li>
@@ -312,9 +313,9 @@ function parseGPX(xml, filename) {
     if (gapSec <= 10) break;
     trkpts = trkpts.slice(1);
   }
-  let distance = 0, elevGain = 0, hrSum = 0, hrCount = 0, hrMax = 0, maxSpeedKmh = 0;
+  let distance = 0, hrSum = 0, hrCount = 0, hrMax = 0, maxSpeedKmh = 0;
   let calories = tcxNum(xml, 'Calories');
-  let prevLat, prevLon, prevEle, prevTime, startTime;
+  let prevLat, prevLon, prevTime, startTime;
   const times = [];
   const points = [];
   const speedWindow = [];
@@ -322,8 +323,6 @@ function parseGPX(xml, filename) {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lon = parseFloat(pt.getAttribute('lon'));
     points.push([lat, lon]);
-    const eleEl = pt.getElementsByTagName('ele')[0];
-    const ele = eleEl ? parseFloat(eleEl.textContent) : null;
     const timeEl = pt.getElementsByTagName('time')[0];
     const time = timeEl ? new Date(timeEl.textContent) : null;
     if (time) times.push(time);
@@ -347,8 +346,7 @@ function parseGPX(xml, filename) {
         }
       }
     }
-    if (ele !== null && prevEle !== undefined && ele > prevEle) elevGain += (ele - prevEle);
-    prevLat = lat; prevLon = lon; prevEle = ele; prevTime = time;
+    prevLat = lat; prevLon = lon; prevTime = time;
     let hrEl = pt.getElementsByTagName('hr')[0];
     if (!hrEl) {
       const all = pt.getElementsByTagName('*');
@@ -364,14 +362,12 @@ function parseGPX(xml, filename) {
   let durationSec = (end - start) / 1000;
 
   // Huawei Santé (et d'autres apps) écrivent leurs propres totaux mesurés dans
-  // <extensions> (distance, dénivelé, durée) — plus fiables que ce qu'on recalcule
+  // <extensions> (distance, durée) — plus fiables que ce qu'on recalcule
   // à partir des points GPS bruts, qui perdent en précision (bruit GPS, points
   // arrondis). On les préfère quand ils sont présents.
   const extTotalDistance = tcxNum(xml, 'totalDistance');
-  const extCumulativeClimb = tcxNum(xml, 'cumulativeClimb');
   const extTotalTime = tcxNum(xml, 'totalTime');
   const distanceKm = extTotalDistance !== null ? extTotalDistance / 1000 : distance / 1000;
-  if (extCumulativeClimb !== null) elevGain = extCumulativeClimb;
   if (extTotalTime !== null) durationSec = extTotalTime;
 
   return {
@@ -379,7 +375,6 @@ function parseGPX(xml, filename) {
     date: start.toISOString(),
     distanceKm,
     durationSec,
-    elevGain,
     avgHr: hrCount ? Math.round(hrSum / hrCount) : null,
     maxHr: hrCount ? hrMax : null,
     maxSpeedKmh: maxSpeedKmh || null,
@@ -397,7 +392,7 @@ function tcxNum(el, tag) {
 function parseTCX(xml, filename) {
   const laps = Array.from(xml.getElementsByTagName('Lap'));
   if (!laps.length) return null;
-  let distance = 0, durationSec = 0, hrWeighted = 0, hrMax = 0, hasHr = false, cumulativeClimb = 0, hasCumulativeClimb = false;
+  let distance = 0, durationSec = 0, hrWeighted = 0, hrMax = 0, hasHr = false;
   let calories = 0, hasCalories = false;
   let startTime = laps[0].getAttribute('StartTime');
   laps.forEach(lap => {
@@ -405,8 +400,6 @@ function parseTCX(xml, filename) {
     const t = tcxNum(lap, 'TotalTimeSeconds') || 0;
     distance += d;
     durationSec += t;
-    const climb = tcxNum(lap, 'CumulativeClimb');
-    if (climb !== null) { cumulativeClimb += climb; hasCumulativeClimb = true; }
     const cal = tcxNum(lap, 'Calories');
     if (cal !== null) { calories += cal; hasCalories = true; }
     const avgHrEl = lap.getElementsByTagName('AverageHeartRateBpm')[0];
@@ -421,13 +414,10 @@ function parseTCX(xml, filename) {
     }
   });
   const trackpoints = Array.from(xml.getElementsByTagName('Trackpoint'));
-  let elevGain = 0, prevEle, prevLat, prevLon, prevTime, maxSpeedKmh = 0, tcxDistance = 0, startTimeTcx;
+  let prevLat, prevLon, prevTime, maxSpeedKmh = 0, tcxDistance = 0, startTimeTcx;
   const points = [];
   const speedWindowTcx = [];
   trackpoints.forEach(tp => {
-    const ele = tcxNum(tp, 'AltitudeMeters');
-    if (ele !== null && prevEle !== undefined && ele > prevEle) elevGain += (ele - prevEle);
-    if (ele !== null) prevEle = ele;
     const timeEl = tp.getElementsByTagName('Time')[0];
     const time = timeEl ? new Date(timeEl.textContent) : null;
     if (time && !startTimeTcx) startTimeTcx = time;
@@ -462,7 +452,6 @@ function parseTCX(xml, filename) {
     date: new Date(startTime).toISOString(),
     distanceKm: distance / 1000,
     durationSec,
-    elevGain: hasCumulativeClimb ? cumulativeClimb : elevGain,
     avgHr: hasHr && durationSec ? Math.round(hrWeighted / durationSec) : null,
     maxHr: hrMax || null,
     maxSpeedKmh: maxSpeedKmh || null,
@@ -582,7 +571,7 @@ function renderInner() {
       <table>
         <thead><tr>
           <th>Date</th><th>Ville</th><th>Distance</th><th>Durée</th><th>Allure moyenne</th>
-          <th>Dénivelé +</th><th>Calories</th><th>VO2max</th><th></th>
+          <th>Calories</th><th>VO2max</th><th></th>
         </tr></thead>
         <tbody>
           ${sorted.map(r => {
@@ -596,7 +585,6 @@ function renderInner() {
               <td>${r.distanceKm.toFixed(2)} km</td>
               <td>${fmtDuration(r.durationSec)}</td>
               <td>${fmtPace(r.durationSec, r.distanceKm)}</td>
-              <td>${Math.round(r.elevGain)} m</td>
               <td class="cal-cell${maxCalories != null && r.calories === maxCalories ? ' best-calories' : ''}" style="cursor:pointer; text-decoration:underline dotted;" onclick="editCalories('${r.id}')" title="Cliquer pour saisir/modifier">${r.calories != null ? r.calories + ' kcal' : '—'}${maxCalories != null && r.calories === maxCalories ? '<span class="calories-badge">🔥 record</span>' : ''}</td>
               <td class="${maxVo2max != null && r.vo2max === maxVo2max ? 'best-vo2max' : ''}" style="cursor:pointer; text-decoration:underline dotted;" onclick="editVo2max('${r.id}')" title="Cliquer pour saisir/modifier">${r.vo2max != null ? `${r.vo2max} <span style="color:${vo2maxAppreciation(r.vo2max).color}; font-size:0.78rem;">(${vo2maxAppreciation(r.vo2max).label})</span>` : '—'}${maxVo2max != null && r.vo2max === maxVo2max ? '<span class="vo2max-badge">⭐ record</span>' : ''}</td>
               <td class="del"><button onclick="deleteRun('${r.id}')">Suppr.</button></td>
@@ -661,7 +649,6 @@ function renderRecords(list) {
   }
   const longest = list.reduce((a,b) => b.distanceKm > a.distanceKm ? b : a);
   const longestDuration = list.reduce((a,b) => b.durationSec > a.durationSec ? b : a);
-  const bestElev = list.reduce((a,b) => b.elevGain > a.elevGain ? b : a);
   const dateOf = r => new Date(r.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
 
   el.innerHTML = `
@@ -674,11 +661,6 @@ function renderRecords(list) {
       <div class="label">Plus longue durée</div>
       <div class="value accent">${fmtDuration(longestDuration.durationSec)}</div>
       <div class="label" style="margin-top:6px;">${dateOf(longestDuration)}</div>
-    </div>
-    <div class="card">
-      <div class="label">Plus gros dénivelé +</div>
-      <div class="value accent">${Math.round(bestElev.elevGain)} m</div>
-      <div class="label" style="margin-top:6px;">${dateOf(bestElev)}</div>
     </div>
   `;
 }
